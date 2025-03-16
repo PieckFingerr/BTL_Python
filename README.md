@@ -3,12 +3,19 @@
 ## Cấu trúc App
 
 btl/
+
 ├── main.py         # Điểm khởi đầu của ứng dụng
+
 ├── models/         # Chứa các class định nghĩa dữ liệu
+
 ├── controllers/    # Xử lý logic nghiệp vụ
+
 ├── views/          # Giao diện người dùng (tkinter)
+
 ├── utils/          # Các tiện ích
+
 └── data/           # Lưu trữ dữ liệu JSON
+
 
 ## models
 
