@@ -1,5 +1,8 @@
-from views import begin
+from btl.views.auth_view import AuthApp
+from btl.controllers.rawg_controller import RawgController
+
 
 if __name__ == "__main__":
-    app = begin.AuthApp()
-    app.mainloop()
+    auth = AuthApp()
+    auth.mainloop()
+

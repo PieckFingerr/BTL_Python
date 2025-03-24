@@ -1,1 +1,26 @@
-{}
+[
+    {
+        "user_id": 1,
+        "username": "a",
+        "password": "a",
+        "email": "a"
+    },
+    {
+        "user_id": 2,
+        "username": "v",
+        "password": "v",
+        "email": "v"
+    },
+    {
+        "user_id": 3,
+        "username": "z",
+        "password": "z",
+        "email": "z"
+    },
+    {
+        "user_id": 4,
+        "username": "1",
+        "password": "1",
+        "email": "1"
+    }
+]
