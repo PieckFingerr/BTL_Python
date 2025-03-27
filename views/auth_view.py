@@ -134,9 +134,11 @@ class AuthApp(ctk.CTk):
         username = self.username_entry.get()
         password = self.password_entry.get()
         
-        if handle_login(username, password, self):
+        user = handle_login(username, password, self)
+        if user:
+
             self.destroy()
-            main_app = MainApp()
+            main_app = MainApp(user) # Truyền thông tin user
             main_app.mainloop()
 
     def handle_register(self):

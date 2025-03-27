@@ -39,8 +39,9 @@ class GameManager:
                 return game
         return None
     
+    # Tìm kiếm games theo tên dù chỉ đúng 1 từ hay cả tên game 
     def get_games_by_name(self, game_name):
-        return [game for game in self.games if game_name.lower() in game.game_name.lower()]
+        return [game for game in self.games if game_name in game.game_name]
     
     def get_games_by_genre(self, genre):
         return [game for game in self.games if genre in game.genre]

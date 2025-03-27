@@ -4,13 +4,20 @@ from tkinter import messagebox
 from btl.controllers.user_controller import UserController
 
 class ProfileFrame(ctk.CTkFrame):
-    def __init__(self, master, current_user=None, **kwargs):
-        super().__init__(master, **kwargs)
+    def __init__(self, parent, current_user):
+        super().__init__(parent)
         
         self.current_user = current_user
 
-        self.user_controller = UserController()
-        
+        # Safely get user_id with a default value
+
+        # Sử dụng user_id khi cần
+        if self.current_user and "user_id" in self.current_user:
+            self.user_id = self.current_user["user_id"]
+
+        if self.current_user and "password" in self.current_user:
+            self.password = self.current_user["password"]
+
         # Configure grid
         self.grid_columnconfigure(0, weight=1)
         
@@ -28,7 +35,7 @@ class ProfileFrame(ctk.CTkFrame):
         self.profile_icon.grid(row=0, column=0, padx=20, pady=(20, 5))
         
         # Username label
-        username_text = "Guest" if self.current_user is None else self.current_user.username
+        username_text = "Guest" if self.current_user is None else self.current_user["username"]
         self.username_label = ctk.CTkLabel(
             self.header_frame,
             text=username_text,
@@ -60,19 +67,10 @@ class ProfileFrame(ctk.CTkFrame):
         )
         self.change_password_button.grid(row=1, column=0, padx=20, pady=10, sticky="ew")
         
-        self.change_email_button = ctk.CTkButton(
-            self.options_frame,
-            text="Change Email",
-            height=40,
-            corner_radius=8,
-            command=self.change_email
-        )
-        self.change_email_button.grid(row=2, column=0, padx=20, pady=10, sticky="ew")
-        
         # Divider
         self.divider = ctk.CTkFrame(self.options_frame, height=2, fg_color="gray70")
         self.divider.grid(row=3, column=0, padx=20, pady=10, sticky="ew")
-    
+        
     # Placeholder methods for the button commands
     def change_username(self):
         # Create a dialog to change username
@@ -107,14 +105,17 @@ class ProfileFrame(ctk.CTkFrame):
         
         def save_username():
             new_username = entry.get()
-            if new_username:
-                # Here you would update the username in your database
-                # For now, we'll just update the display
-                self.username_label.configure(text=new_username)
-                messagebox.showinfo("Success", "Username updated successfully!")
-                dialog.destroy()
-            else:
-                messagebox.showerror("Error", "Username cannot be empty!")
+            
+            if not new_username:
+                messagebox.showerror("Error", "Username is required!")
+                return
+                
+            # Here you would update the username in your database
+            change_username(self, new_username)
+            self.current_user["username"] = new_username
+            # For now, we'll just show a success message
+            messagebox.showinfo("Success", "Username updated successfully!")
+            dialog.destroy()
         
         save_button = ctk.CTkButton(button_frame, text="Save", command=save_username)
         save_button.pack(side="left", padx=10)
@@ -169,7 +170,7 @@ class ProfileFrame(ctk.CTkFrame):
             current = current_entry.get()
             new = new_entry.get()
             confirm = confirm_entry.get()
-            
+
             if not current or not new or not confirm:
                 messagebox.showerror("Error", "All fields are required!")
                 return
@@ -179,6 +180,7 @@ class ProfileFrame(ctk.CTkFrame):
                 return
                 
             # Here you would verify the current password and update in your database
+            change_password(self.user_id, self.password, new)
             # For now, we'll just show a success message
             messagebox.showinfo("Success", "Password updated successfully!")
             dialog.destroy()
@@ -189,62 +191,12 @@ class ProfileFrame(ctk.CTkFrame):
         cancel_button = ctk.CTkButton(button_frame, text="Cancel", command=dialog.destroy)
         cancel_button.pack(side="left", padx=10)
     
-    def change_email(self):
-        # Create a dialog to change email
-        dialog = ctk.CTkToplevel(self)
-        dialog.title("Change Email")
-        dialog.geometry("400x240")
-        dialog.resizable(False, False)
-        dialog.grab_set()  # Make dialog modal
-        
-        # Center the dialog
-        dialog.update_idletasks()
-        width = dialog.winfo_width()
-        height = dialog.winfo_height()
-        x = (dialog.winfo_screenwidth() // 2) - (width // 2)
-        y = (dialog.winfo_screenheight() // 2) - (height // 2)
-        dialog.geometry('{}x{}+{}+{}'.format(width, height, x, y))
-        
-        # Dialog content
-        frame = ctk.CTkFrame(dialog, corner_radius=0)
-        frame.pack(fill="both", expand=True)
-        
-        # Email entries
-        current_label = ctk.CTkLabel(frame, text="Current Email:")
-        current_label.pack(pady=(20, 5))
-        
-        # Show current email (read-only)
-        current_email = "user@example.com"  # Replace with actual email from user object
-        current_entry = ctk.CTkEntry(frame, width=300)
-        current_entry.insert(0, current_email)
-        current_entry.configure(state="disabled")
-        current_entry.pack(pady=5)
-        
-        new_label = ctk.CTkLabel(frame, text="New Email:")
-        new_label.pack(pady=(10, 5))
-        
-        new_entry = ctk.CTkEntry(frame, width=300)
-        new_entry.pack(pady=5)
-        
-        # Buttons
-        button_frame = ctk.CTkFrame(frame, fg_color="transparent")
-        button_frame.pack(pady=20)
-        
-        def save_email():
-            new_email = new_entry.get()
-            
-            if not new_email:
-                messagebox.showerror("Error", "New email is required!")
-                return
-                
-            # Here you would update the email in your database
-            # For now, we'll just show a success message
-            messagebox.showinfo("Success", "Email updated successfully!")
-            dialog.destroy()
-        
-        save_button = ctk.CTkButton(button_frame, text="Save", command=save_email)
-        save_button.pack(side="left", padx=10)
-        
-        cancel_button = ctk.CTkButton(button_frame, text="Cancel", command=dialog.destroy)
-        cancel_button.pack(side="left", padx=10)
-    
+def change_username(user_id, new_username):
+    user_controller = UserController()
+    return user_controller.change_username(user_id, new_username)
+
+def change_password(user_id, current_password, new_password):
+    user_controller = UserController()
+    return user_controller.change_password(user_id, current_password, new_password)
+
+

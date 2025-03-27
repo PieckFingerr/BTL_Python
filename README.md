@@ -101,6 +101,7 @@ git push origin main
 # Chạy code
 
 ```bash
-python main.py
+python -m btl.main
 ```
+Lưu ý: Đường dẫn phải nằm ngoài thư mục gốc
 

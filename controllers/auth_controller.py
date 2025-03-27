@@ -35,12 +35,8 @@ def handle_login(username, password, app):
     for user in users:
         if user["username"] == username and user["password"] == password:
             messagebox.showinfo("Success", "Login successful!")
-            app.destroy()  # Đóng cửa sổ hiện tại
-
-            from btl.views.main_view import MainApp
-            main_app = MainApp()
-            main_app.mainloop()
-            return True
+            
+            return user
 
     messagebox.showerror("Error", "Invalid username or password!")
     return False

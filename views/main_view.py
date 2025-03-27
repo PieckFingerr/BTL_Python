@@ -15,8 +15,17 @@ ctk.set_appearance_mode("dark")  # Chế độ tối
 ctk.set_default_color_theme("blue")  # Chủ đề màu
 
 class MainApp(ctk.CTk):
-    def __init__(self):
+    def __init__(self, current_user):
         super().__init__()
+
+        # Lưu thông tin user hiện tại
+        self.current_user = current_user
+
+        # Sử dụng user_id khi cần
+        if self.current_user and "user_id" in self.current_user:
+            self.user_id = self.current_user["user_id"]
+
+        print("User ID:", self.user_id)
 
         # Định nghĩa biến game để hiển thị
         self.games_controller = GameController()
@@ -28,9 +37,6 @@ class MainApp(ctk.CTk):
         # Cấu hình cửa sổ chính
         self.title("WLD Game Store")
         self.geometry("1200x700")
-        
-        # Tạo biến để lưu trữ xem user hiện tại là ai
-        self.current_user = None
 
         # Dữ liệu games lấy từ file json
         self.games_data = []
@@ -63,12 +69,6 @@ class MainApp(ctk.CTk):
         )
         self.home_button.grid(row=1, column=0, padx=20, pady=10)
         
-        self.reviews_button = ctk.CTkButton(
-            self.sidebar_frame, text="Reviews",
-            command=self.show_reviews_page
-        )
-        self.reviews_button.grid(row=2, column=0, padx=20, pady=10)
-        
         # Profile button
         self.profile_button = ctk.CTkButton(
             self.sidebar_frame, text="Your Profile",
@@ -88,13 +88,6 @@ class MainApp(ctk.CTk):
             command=self.show_library
         )
         self.library_button.grid(row=5, column=0, padx=20, pady=10)
-        
-        # New Releases section
-        self.releases_label = ctk.CTkLabel(
-            self.sidebar_frame, text="New Releases",
-            font=ctk.CTkFont(size=16, weight="bold")
-        )
-        self.releases_label.grid(row=8, column=0, padx=20, pady=(20, 10), sticky="w")
         
         # Main content area
         self.main_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -119,21 +112,6 @@ class MainApp(ctk.CTk):
             font=ctk.CTkFont(size=14)
         )
         self.content_subtitle.grid(row=1, column=0, sticky="w")
-        
-        # Sort options
-        self.sort_frame = ctk.CTkFrame(self.header_frame)
-        self.sort_frame.grid(row=2, column=0, sticky="w", pady=(10, 0))
-        
-        self.sort_label = ctk.CTkLabel(self.sort_frame, text="Order by:")
-        self.sort_label.grid(row=0, column=0, padx=(10, 5))
-        
-        self.sort_options = ["Relevance", "Date added", "Name", "Release date", "Popularity", "Rating"]
-        self.sort_dropdown = ctk.CTkOptionMenu(
-            self.sort_frame, values=self.sort_options,
-            command=self.sort_games
-        )
-        self.sort_dropdown.grid(row=0, column=1, padx=5)
-        self.sort_dropdown.set("Relevance")
 
         # Search bar
         self.search_frame = ctk.CTkFrame(self.header_frame)
@@ -144,8 +122,13 @@ class MainApp(ctk.CTk):
         
         self.search_entry = ctk.CTkEntry(self.search_frame, width=300, placeholder_text="Search by name...")
         self.search_entry.grid(row=0, column=1, padx=5)
-        # self.search_entry.bind("<Return>", self.search_games)
         
+        self.search_button = ctk.CTkButton(
+            self.search_frame, text="Search", width=100,
+              command=self.search_games_method
+        )
+        self.search_button.grid(row=0, column=2, padx=5)
+
         # Display options
         self.display_frame = ctk.CTkFrame(self.header_frame)
         self.display_frame.grid(row=2, column=1, sticky="e")
@@ -286,6 +269,114 @@ class MainApp(ctk.CTk):
                 )
                 wishlist_button.grid(row=4, column=0, padx=5, pady=(0, 5), sticky="w")
 
+    def display_filtered_games(self, filtered_games):
+        # Clear current games
+        for widget in self.games_container.winfo_children():
+            widget.destroy()
+
+        # Display games based on current view
+        if self.current_view == "grid":
+            # Hiển thị dạng lưới (3 cột)
+            for i, game in enumerate(filtered_games):
+                row = i // 3
+                col = i % 3
+
+                # Game card
+                game_frame = ctk.CTkFrame(self.games_container)
+                game_frame.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
+                
+                # Game image từ URL
+                image_label = ctk.CTkLabel(
+                    game_frame, text="", 
+                    width=300, height=180,
+                    fg_color="#333333",
+                )
+                image_label.grid(row=0, column=0, padx=5, pady=5)
+
+                # Thử tải ảnh từ URL
+                if hasattr(game, "image") and game.image:
+                    image = self.load_image_from_url(game.image)
+                    if image:
+                        image_label.configure(image=image)
+                        # Lưu tham chiếu đến ảnh để tránh bị garbage collect
+                        image_label.image = image
+                
+                # Game title
+                title_label = ctk.CTkLabel(
+                    game_frame, text=game.game_name,
+                    font=ctk.CTkFont(size=16, weight="bold"),
+                    wraplength=280
+                )
+                title_label.grid(row=2, column=0, padx=5, pady=(0, 5), sticky="w")
+
+                # Add to lib
+                library_button = ctk.CTkButton(
+                    game_frame, text="Add to library", 
+                    command=lambda g=game: self.add_to_wishlist(g)
+                )
+                library_button.grid(row=3, column=0, padx=5, pady=(0, 5), sticky="w")
+
+                # Add to wishlist
+                wishlist_button = ctk.CTkButton(
+                    game_frame, text="Add to wishlist", 
+                    command=lambda g=game: self.add_to_wishlist(g)
+                )
+                wishlist_button.grid(row=4, column=0, padx=5, pady=(0, 5), sticky="w")
+
+        else:
+            # Hiển thị dạng danh sách (1 cột)
+            for i, game in enumerate(self.filter_games):
+                # Game row
+                game_frame = ctk.CTkFrame(self.games_container)
+                game_frame.grid(row=i, column=0, columnspan=3, padx=10, pady=10, sticky="ew")
+                game_frame.grid_columnconfigure(1, weight=1)
+
+                # Game image từ URL
+                image_label = ctk.CTkLabel(
+                    game_frame, text="", 
+                    width=300, height=180,
+                    fg_color="#333333",
+                )
+                image_label.grid(row=0, column=0, padx=5, pady=5)
+
+                # Thử tải ảnh từ URL
+                if hasattr(game, "image") and game.image:
+                    image = self.load_image_from_url(game.image)
+                    if image:
+                        image_label.configure(image=image)
+                        # Lưu tham chiếu đến ảnh để tránh bị garbage collect
+                        image_label.image = image
+                
+                # # Game image placeholder
+                # image_label = ctk.CTkLabel(
+                #     game_frame, text="", 
+                #     width=160, height=90,
+                #     fg_color="#333333"
+                # )
+                # image_label.grid(row=0, column=0, padx=10, pady=10, rowspan=3)
+                
+                # Game title
+                title_label = ctk.CTkLabel(
+                    game_frame, text=game.game_name,
+                    font=ctk.CTkFont(size=16, weight="bold"),
+                    anchor="w"
+                )
+                title_label.grid(row=0, column=1, padx=10, pady=(10, 0), sticky="w")
+
+                # Add to lib
+                library_button = ctk.CTkButton(
+                    game_frame, text="Add to library", 
+                    command=lambda g=game: self.add_to_wishlist(g)
+                )
+                library_button.grid(row=3, column=0, padx=5, pady=(0, 5), sticky="w")
+
+                # Add to wishlist
+                wishlist_button = ctk.CTkButton(
+                    game_frame, text="Add to wishlist", 
+                    command=lambda g=game: self.add_to_wishlist(g)
+                )
+                wishlist_button.grid(row=4, column=0, padx=5, pady=(0, 5), sticky="w")
+
     def change_view(self, view_type):
         self.current_view = view_type
         self.display_games()
@@ -305,19 +396,19 @@ class MainApp(ctk.CTk):
         messagebox.showinfo("Lọc game", f"Lọc theo: {filter_type}")
         # TODO: Thực hiện lọc dữ liệu game
     
-    def play_game(self, game):
-        messagebox.showinfo("Chơi game", f"Bắt đầu chơi: {game['title']}")
-    
     def add_to_wishlist(self, game):
         messagebox.showinfo("Wishlist", f"Đã thêm {game['title']} vào danh sách yêu thích")
     
     def show_home_page(self):
-        self.content_title.configure(text="New and trending")
-        self.content_subtitle.configure(text="Based on player counts and release date")
-    
-    def show_reviews_page(self):
-        self.content_title.configure(text="Reviews")
-        self.content_subtitle.configure(text="Game reviews from our community")
+        for widget in self.games_container.winfo_children():
+            widget.destroy()
+        
+        # Update the title
+        self.content_title.configure(text="Home")
+        self.content_subtitle.configure(text="Games you might like")
+
+        
+        self.display_games()
     
     def show_wishlist(self):
         self.content_title.configure(text="Your Wishlist")
@@ -326,28 +417,32 @@ class MainApp(ctk.CTk):
     def show_library(self):
         self.content_title.configure(text="Your Library")
         self.content_subtitle.configure(text="Your purchased games")
-    
-    def show_people(self):
-        self.content_title.configure(text="People You Follow")
-        self.content_subtitle.configure(text="See what your friends are playing")
-    
-    def show_calendar(self):
-        self.content_title.configure(text="Release Calendar")
-        self.content_subtitle.configure(text="Upcoming game releases")
 
     def show_profile_page(self):
         # Clear current content
         for widget in self.games_container.winfo_children():
             widget.destroy()
         
+        # In ra giá trị current_user để kiểm tra
+        print("Current User:", self.current_user)
+        print("Type of current_user:", type(self.current_user))
+        
         # Update the title
         self.content_title.configure(text="Your Profile")
         self.content_subtitle.configure(text="Manage your account settings")
         
-        # Create and display the profile frame
-        profile_frame = ProfileFrame(self.games_container, current_user=self.current_user)
-        profile_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        # Thử in từng phần của current_user
+        if self.current_user:
+            for key, value in self.current_user.items():
+                print(f"{key}: {value}")
         
+        # Thử truyền theo nhiều cách
+        try:
+            # Cách 1
+            profile_frame = ProfileFrame(self.games_container, current_user=self.current_user)
+            profile_frame.grid(row=0, column=0, columnspan=3, sticky="nsew", padx=20, pady=20)
+        except Exception as e:
+            print("Lỗi khi tạo ProfileFrame:", e)
 
     # Tải ảnh lên view bằng url        
     def load_image_from_url(self, url, width=300, height=180):
@@ -375,3 +470,29 @@ class MainApp(ctk.CTk):
         except Exception as e:
             print(f"Không thể tải ảnh từ URL {url}: {e}")
             return None
+
+
+    def search_games_method(self):
+        search_term = self.search_entry.get()
+
+        filtered_games = search_games(search_term)
+
+        # Clear current games
+        for widget in self.games_container.winfo_children():
+            widget.destroy()
+
+        # Update title to reflect search
+        self.content_title.configure(text=f"Search Results for '{search_term}'")
+        self.content_subtitle.configure(text=f"{len(filtered_games)} games found")
+        
+        # Store the filtered games
+        self.games_data = filtered_games
+        
+        # Display the filtered games
+        self.display_filtered_games(filtered_games)
+
+
+# Tìm game theo tên trên thanh search bar và hiển thị ra view
+def search_games(game_name):
+    game_controller = GameController()
+    return game_controller.get_games_by_name(game_name)

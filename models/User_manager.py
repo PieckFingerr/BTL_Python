@@ -27,30 +27,26 @@ class UserManager:
         except json.JSONDecodeError:
             print(f"Lỗi khi đọc file: {self.json_path}")
 
-        def save_users(self):
-            """Lưu danh sách người dùng vào file JSON"""
-            try:
-                users_data = []
-                for user in self.users:
-                    user_dict = {
-                        "user_id": user.user_id,
-                        "username": user.username,
-                        "password": user.password,
-                        "email": user.email
-                    }
-                    users_data.append(user_dict)
-                    
-                with open(self.json_path, "w", encoding="utf-8") as file:
-                    json.dump(users_data, file, indent=4, ensure_ascii=False)
-                return True
-            except Exception as e:
-                print(f"Lỗi khi lưu file: {e}")
-                return False
+    def save_users(self):
+        """Lưu danh sách người dùng vào file JSON"""
+        try:
+            users_data = []
+            for user in self.users:
+                user_dict = {
+                    "user_id": user.user_id,
+                    "username": user.username,
+                    "password": user.password,
+                    "email": user.email
+                }
+                users_data.append(user_dict)
+                
+            with open(self.json_path, "w", encoding="utf-8") as file:
+                json.dump(users_data, file, indent=4, ensure_ascii=False)
+            return True
+        except Exception as e:
+            print(f"Lỗi khi lưu file: {e}")
+            return False
             
-    def get_all_users_id(self):
-        """Lấy danh sách tất cả user_id"""
-        return [user.user_id for user in self.users]
-
     def get_user_by_id(self, user_id):
         """Lấy thông tin người dùng theo ID"""
         for user in self.users:
@@ -99,20 +95,3 @@ class UserManager:
         else:
             return False, "Lỗi khi lưu thay đổi"
             
-    def change_email(self, user_id, new_email):
-        """Thay đổi email người dùng"""
-        # Kiểm tra xem email đã tồn tại chưa
-        for user in self.users:
-            if user.email == new_email and user.user_id != user_id:
-                return False, "Email đã được sử dụng"
-        
-        user = self.get_user_by_id(user_id)
-        if not user:
-            return False, "Không tìm thấy người dùng"
-            
-        user.email = new_email
-        success = self.save_users()
-        if success:
-            return True, "Đổi email thành công"
-        else:
-            return False, "Lỗi khi lưu thay đổi"

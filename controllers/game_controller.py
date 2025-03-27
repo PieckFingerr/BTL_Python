@@ -19,3 +19,7 @@ class GameController:
     def search_games_by_developer(self, developer):
         """Tìm kiếm games theo nhà phát triển"""
         return self.game_manager.get_games_by_developer(developer)
+    
+    def get_games_by_name(self, game_name):
+        """Tìm kiếm games theo tên game"""
+        return self.game_manager.get_games_by_name(game_name)
