@@ -1,20 +1,13 @@
-from btl.models.Game import Game
-from btl.models.User import User
-
-class Lib(Game):
-    def __init__(self, game_id, game_name, description, release_date, rating, genre, devs, image, user_id):
-        super().__init__(game_id, game_name, description, release_date, rating, genre, devs, image)
+class Lib():
+    def __init__(self, user_id, product_id):
         self.user_id = user_id
+        self.product_id = product_id
 
+    def __repr__(self):
+        return f'<Lib {self.user_id} {self.product_id}>'
+    
     def to_dict(self):
         return {
-            "game_id": self.game_id,
-            "game_name": self.game_name,
-            "description": self.description,
-            "release_date": self.release_date,
-            "rating": self.rating,
-            "genre": self.genre,
-            "devs": self.devs,
-            "image": self.image,
-            "user_id": self.user_id
+            'user_id': self.user_id,
+            'product_id': self.product_id
         }

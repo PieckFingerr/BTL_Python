@@ -1,6 +1,5 @@
 import requests
 import json
-import datetime
 
 class RawgController:
     def __init__(self):

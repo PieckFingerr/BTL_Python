@@ -7,9 +7,9 @@ import requests
 from io import BytesIO
 
 from btl.controllers.game_controller import GameController
-
-
+from btl.controllers.lib_controller import LibController
 from btl.views.user_profile_view import ProfileFrame
+from btl.controllers.wishlist_controller import WishlistController
 
 ctk.set_appearance_mode("dark")  # Chế độ tối
 ctk.set_default_color_theme("blue")  # Chủ đề màu
@@ -381,23 +381,47 @@ class MainApp(ctk.CTk):
         self.current_view = view_type
         self.display_games()
     
-    def sort_games(self, option):
-        # Placeholder for sorting logic
-        if option == "Name":
-            self.games_data.sort(key=lambda x: x["title"])
-        elif option == "Popularity":
-            self.games_data.sort(key=lambda x: x["player_count"], reverse=True)
-        # Các tùy chọn sắp xếp khác có thể được thêm vào sau
-        
-        self.display_games()
-    
-    def filter_games(self, filter_type):
-        # Placeholder for filtering logic
-        messagebox.showinfo("Lọc game", f"Lọc theo: {filter_type}")
-        # TODO: Thực hiện lọc dữ liệu game
-    
+    def add_to_library(self, game):
+        try:
+            # Get the game ID
+            game_id = game.game_id
+            
+            # Use the LibController to add the game to the library
+            lib_controller = LibController()
+            result = lib_controller.add_lib(self.user_id, game_id)
+            
+            if result:
+                messagebox.showinfo("Success", f"{game.game_name} added to your library")
+                # Refresh the library view if we're currently on that page
+                if self.content_title.cget("text") == "Your Library":
+                    self.show_library()
+            else:
+                # Game is already in the library
+                messagebox.showinfo("Info", f"{game.game_name} is already in your library")
+        except Exception as e:
+            print(f"Error adding game to library: {e}")
+            messagebox.showerror("Error", f"An error occurred: {str(e)}")
+
     def add_to_wishlist(self, game):
-        messagebox.showinfo("Wishlist", f"Đã thêm {game['title']} vào danh sách yêu thích")
+        try:
+            # Get the game ID
+            game_id = game.game_id
+            
+            # Use the WishlistController to add the game to the wishlist
+            wl_controller = WishlistController()
+            result = wl_controller.add_wishlist(self.user_id, game_id)
+            
+            if result:
+                messagebox.showinfo("Success", f"{game.game_name} added to your wishlist")
+                # Refresh the wishlist view if we're currently on that page
+                if self.content_title.cget("text") == "Your Wishlist":
+                    self.show_wishlist()
+            else:
+                # Game is already in the wishlist
+                messagebox.showinfo("Info", f"{game.game_name} is already in your wishlist")
+        except Exception as e:
+            print(f"Error adding game to wishlist: {e}")
+            messagebox.showerror("Error", f"An error occurred: {str(e)}")
     
     def show_home_page(self):
         for widget in self.games_container.winfo_children():
@@ -411,13 +435,294 @@ class MainApp(ctk.CTk):
         self.display_games()
     
     def show_wishlist(self):
+        # Clear current content
+        for widget in self.games_container.winfo_children():
+            widget.destroy()
+        
+        # Update the title
         self.content_title.configure(text="Your Wishlist")
-        self.content_subtitle.configure(text="Games you've saved for later")
+        self.content_subtitle.configure(text="Your games collection")
+        
+        # Get user's library
+        wl_controller = WishlistController()
+        user_wl = wl_controller.get_wishlist_by_user_id(self.user_id)
+        
+        # If library is empty or user doesn't have a library yet
+        if not user_wl or "product_id" not in user_wl or not user_wl["product_id"]:
+            empty_label = ctk.CTkLabel(
+                self.games_container, 
+                text="Your wishlist is empty. Add games to see them here.",
+                font=ctk.CTkFont(size=16)
+            )
+            empty_label.grid(row=0, column=0, columnspan=3, padx=20, pady=20)
+            return
+        
+        # Get the game objects for each library item
+        wl_games = []
+        for game_id in user_wl["product_id"]:
+            game = self.games_controller.get_game_by_id(game_id)
+            if game:
+                wl_games.append(game)
+            
+        # Display games based on current view
+        if self.current_view == "grid":
+            # Grid view (3 columns)
+            for i, game in enumerate(wl_games):
+                row = i // 3
+                col = i % 3
+                
+                # Game card
+                game_frame = ctk.CTkFrame(self.games_container)
+                game_frame.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
+                
+                # Game image
+                image_label = ctk.CTkLabel(
+                    game_frame, text="", 
+                    width=300, height=180,
+                    fg_color="#333333",
+                )
+                image_label.grid(row=0, column=0, padx=5, pady=5)
+
+                # Try to load image from URL
+                if hasattr(game, "image") and game.image:
+                    image = self.load_image_from_url(game.image)
+                    if image:
+                        image_label.configure(image=image)
+                        # Keep reference to image to prevent garbage collection
+                        image_label.image = image
+                
+                # Game title
+                title_label = ctk.CTkLabel(
+                    game_frame, text=game.game_name,
+                    font=ctk.CTkFont(size=16, weight="bold"),
+                    wraplength=280
+                )
+                title_label.grid(row=1, column=0, padx=5, pady=(5, 5), sticky="w")
+                
+                # Remove from library button
+                remove_button = ctk.CTkButton(
+                    game_frame, text="Remove from Wishlist", 
+                    command=lambda g_id=game.game_id: self.remove_from_wishlist(g_id)
+                )
+                remove_button.grid(row=3, column=0, padx=5, pady=(0, 5), sticky="w")
+        else:
+            # List view (1 column)
+            for i, game in enumerate(wl_games):
+                # Game row
+                game_frame = ctk.CTkFrame(self.games_container)
+                game_frame.grid(row=i, column=0, columnspan=3, padx=10, pady=10, sticky="ew")
+                game_frame.grid_columnconfigure(1, weight=1)
+                
+                # Game image
+                image_label = ctk.CTkLabel(
+                    game_frame, text="", 
+                    width=300, height=180,
+                    fg_color="#333333",
+                )
+                image_label.grid(row=0, column=0, padx=5, pady=5)
+                
+                # Try to load image from URL
+                if hasattr(game, "image") and game.image:
+                    image = self.load_image_from_url(game.image)
+                    if image:
+                        image_label.configure(image=image)
+                        # Keep reference to image to prevent garbage collection
+                        image_label.image = image
+                
+                # Game title
+                title_label = ctk.CTkLabel(
+                    game_frame, text=game.game_name,
+                    font=ctk.CTkFont(size=16, weight="bold"),
+                    anchor="w"
+                )
+                title_label.grid(row=0, column=1, padx=10, pady=(10, 0), sticky="w")
+                
+                # Buttons container
+                buttons_frame = ctk.CTkFrame(game_frame, fg_color="transparent")
+                buttons_frame.grid(row=1, column=1, padx=10, pady=5, sticky="w")
+
+                # Remove from library button
+                remove_button = ctk.CTkButton(
+                    buttons_frame, text="Remove from library", 
+                    command=lambda g_id=game.game_id: self.remove_from_wishlist(g_id)
+                )
+                remove_button.grid(row=0, column=1, padx=5, pady=5, sticky="w")
+        
+        # Highlight the library button in the sidebar
+        self.home_button.configure(fg_color=("#3B8ED0", "#1F6AA5"))  # Reset home button color
+        self.profile_button.configure(fg_color=("#3B8ED0", "#1F6AA5"))  # Reset profile button color
+        self.wishlist_button.configure(fg_color=("#3B8ED0", "#1F6AA5"))  # Reset wishlist button color
+        self.library_button.configure(fg_color=("#2E5984", "#144870"))  # Highlight library button
     
     def show_library(self):
+        # Clear current content
+        for widget in self.games_container.winfo_children():
+            widget.destroy()
+        
+        # Update the title
         self.content_title.configure(text="Your Library")
-        self.content_subtitle.configure(text="Your purchased games")
+        self.content_subtitle.configure(text="Your games collection")
+        
+        # Get user's library
+        lib_controller = LibController()
+        user_lib = lib_controller.get_lib_by_user_id(self.user_id)
+        
+        # If library is empty or user doesn't have a library yet
+        if not user_lib or "product_id" not in user_lib or not user_lib["product_id"]:
+            empty_label = ctk.CTkLabel(
+                self.games_container, 
+                text="Your library is empty. Add games to see them here.",
+                font=ctk.CTkFont(size=16)
+            )
+            empty_label.grid(row=0, column=0, columnspan=3, padx=20, pady=20)
+            return
+        
+        # Get the game objects for each library item
+        library_games = []
+        for game_id in user_lib["product_id"]:
+            game = self.games_controller.get_game_by_id(game_id)
+            if game:
+                library_games.append(game)
+            
+        # Display games based on current view
+        if self.current_view == "grid":
+            # Grid view (3 columns)
+            for i, game in enumerate(library_games):
+                row = i // 3
+                col = i % 3
+                
+                # Game card
+                game_frame = ctk.CTkFrame(self.games_container)
+                game_frame.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
+                
+                # Game image
+                image_label = ctk.CTkLabel(
+                    game_frame, text="", 
+                    width=300, height=180,
+                    fg_color="#333333",
+                )
+                image_label.grid(row=0, column=0, padx=5, pady=5)
 
+                # Try to load image from URL
+                if hasattr(game, "image") and game.image:
+                    image = self.load_image_from_url(game.image)
+                    if image:
+                        image_label.configure(image=image)
+                        # Keep reference to image to prevent garbage collection
+                        image_label.image = image
+                
+                # Game title
+                title_label = ctk.CTkLabel(
+                    game_frame, text=game.game_name,
+                    font=ctk.CTkFont(size=16, weight="bold"),
+                    wraplength=280
+                )
+                title_label.grid(row=1, column=0, padx=5, pady=(5, 5), sticky="w")
+
+                # Play game button
+                play_button = ctk.CTkButton(
+                    game_frame, text="Play", 
+                    command=lambda g=game: self.play_game(g)
+                )
+                play_button.grid(row=2, column=0, padx=5, pady=(0, 5), sticky="w")
+                
+                # Remove from library button
+                remove_button = ctk.CTkButton(
+                    game_frame, text="Remove from library", 
+                    command=lambda g_id=game.game_id: self.remove_from_library(g_id)
+                )
+                remove_button.grid(row=3, column=0, padx=5, pady=(0, 5), sticky="w")
+        else:
+            # List view (1 column)
+            for i, game in enumerate(library_games):
+                # Game row
+                game_frame = ctk.CTkFrame(self.games_container)
+                game_frame.grid(row=i, column=0, columnspan=3, padx=10, pady=10, sticky="ew")
+                game_frame.grid_columnconfigure(1, weight=1)
+                
+                # Game image
+                image_label = ctk.CTkLabel(
+                    game_frame, text="", 
+                    width=300, height=180,
+                    fg_color="#333333",
+                )
+                image_label.grid(row=0, column=0, padx=5, pady=5)
+                
+                # Try to load image from URL
+                if hasattr(game, "image") and game.image:
+                    image = self.load_image_from_url(game.image)
+                    if image:
+                        image_label.configure(image=image)
+                        # Keep reference to image to prevent garbage collection
+                        image_label.image = image
+                
+                # Game title
+                title_label = ctk.CTkLabel(
+                    game_frame, text=game.game_name,
+                    font=ctk.CTkFont(size=16, weight="bold"),
+                    anchor="w"
+                )
+                title_label.grid(row=0, column=1, padx=10, pady=(10, 0), sticky="w")
+                
+                # Buttons container
+                buttons_frame = ctk.CTkFrame(game_frame, fg_color="transparent")
+                buttons_frame.grid(row=1, column=1, padx=10, pady=5, sticky="w")
+
+                # Play game button
+                play_button = ctk.CTkButton(
+                    buttons_frame, text="Play", 
+                    command=lambda g=game: self.play_game(g)
+                )
+
+                # Remove from library button
+                remove_button = ctk.CTkButton(
+                    buttons_frame, text="Remove from library", 
+                    command=lambda g_id=game.game_id: self.remove_from_library(g_id)
+                )
+                remove_button.grid(row=0, column=1, padx=5, pady=5, sticky="w")
+        
+        # Highlight the library button in the sidebar
+        self.home_button.configure(fg_color=("#3B8ED0", "#1F6AA5"))  # Reset home button color
+        self.profile_button.configure(fg_color=("#3B8ED0", "#1F6AA5"))  # Reset profile button color
+        self.wishlist_button.configure(fg_color=("#3B8ED0", "#1F6AA5"))  # Reset wishlist button color
+        self.library_button.configure(fg_color=("#2E5984", "#144870"))  # Highlight library button
+
+    def play_game(self, game):
+        messagebox.showinfo("Play Game", f"Starting {game.game_name}...")
+        # Add actual game launch logic here if needed
+
+    def remove_from_library(self, game_id):
+        try:
+            # Use the LibController to remove the game from the library
+            lib_controller = LibController()
+            success = lib_controller.delete_lib_by_product_id(self.user_id, game_id)
+            
+            if success:
+                messagebox.showinfo("Success", "Game removed from your library")
+                # Refresh the library view
+                self.show_library()
+            else:
+                messagebox.showerror("Error", "Failed to remove game from your library")
+        except Exception as e:
+            print(f"Error removing game from library: {e}")
+            messagebox.showerror("Error", f"An error occurred: {str(e)}")
+       
+    def remove_from_wishlist(self, game_id):
+        try:
+            # Use the LibController to remove the game from the library
+            wl_controller = WishlistController()
+            success = wl_controller.delete_wishlist_by_product_id(self.user_id, game_id)
+            
+            if success:
+                messagebox.showinfo("Success", "Game removed from your Wishlist")
+                # Refresh the library view
+                self.show_library()
+            else:
+                messagebox.showerror("Error", "Failed to remove game from your Wishlist")
+        except Exception as e:
+            print(f"Error removing game from Wishlist: {e}")
+            messagebox.showerror("Error", f"An error occurred: {str(e)}")
+       
     def show_profile_page(self):
         # Clear current content
         for widget in self.games_container.winfo_children():
@@ -446,29 +751,29 @@ class MainApp(ctk.CTk):
 
     # Tải ảnh lên view bằng url        
     def load_image_from_url(self, url, width=300, height=180):
-        # Kiểm tra cache trước
+        # Check cache first
         cache_key = f"{url}_{width}_{height}"
         if cache_key in self.image_cache:
             return self.image_cache[cache_key]
         try:
-            # Tải ảnh từ URL
+            # Load image from URL
             response = requests.get(url)
-            response.raise_for_status()  # Kiểm tra lỗi HTTP
+            response.raise_for_status()
             
-            # Chuyển đổi dữ liệu nhận được thành ảnh PIL
+            # Convert data to PIL image
             image = Image.open(BytesIO(response.content))
             
-            # Resize ảnh để vừa với kích thước hiển thị
+            # Resize image to fit display size
             image = image.resize((width, height), Image.LANCZOS)
             
-            # Chuyển đổi ảnh PIL thành định dạng CTkImage
-            ctk_image = ImageTk.PhotoImage(image)
+            # Convert PIL image to CTkImage format
+            ctk_image = ctk.CTkImage(light_image=image, dark_image=image, size=(width, height))
             
-            # Lưu vào cache
+            # Save to cache
             self.image_cache[cache_key] = ctk_image
             return ctk_image
         except Exception as e:
-            print(f"Không thể tải ảnh từ URL {url}: {e}")
+            print(f"Cannot load image from URL {url}: {e}")
             return None
 
 
@@ -496,3 +801,4 @@ class MainApp(ctk.CTk):
 def search_games(game_name):
     game_controller = GameController()
     return game_controller.get_games_by_name(game_name)
+

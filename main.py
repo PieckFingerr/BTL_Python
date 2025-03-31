@@ -3,6 +3,7 @@ from btl.controllers.rawg_controller import RawgController
 
 
 if __name__ == "__main__":
-    auth = AuthApp()
-    auth.mainloop()
+    # Start the application
+    app = AuthApp()
+    app.mainloop()
 
