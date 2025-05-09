@@ -4,104 +4,49 @@
 
 btl/
 
-├── main.py # Điểm khởi đầu của ứng dụng
+├── main.py # Điểm khởi đầu của ứng dụng / chạy App
 
-├── models/ # Chứa các class định nghĩa dữ liệu
+├── Folder models/ # Chứa các class định nghĩa dữ liệu và lấy dữ liệu từ folder datas
 
-├── controllers/ # Xử lý logic nghiệp vụ
+├── Folder controllers/ # Xử lý datas được lấy từ models để tải lên view
 
-├── views/ # Giao diện người dùng (tkinter)
+├── Folder views/ # Giao diện người dùng (tkinter, custom tkinter)
 
-├── utils/ # Các tiện ích
-
-└── data/ # Lưu trữ dữ liệu JSON
+└── Folder datas/ # Lưu trữ dữ liệu JSON
 
 ## models
 
-Folder định nghĩa các class đối tượng, tức là giả sử app có người dùng (User) đi thì 1 file trong folder sẽ đặt là user.py, nó sẽ chứa các field, get, set, và các phương thức của đối tượng đó giống như add wish list, add to cart, search game,...
+Folder định nghĩa các class đối tượng, get, set, và dùng để làm việc với Folder JSON cho việc ghi các đối tượng vào file JSON
 
 ## controllers
 
-có nhiệm vụ kết nối giữa folder models và views, giống như xử lý đăng nhập, đăng ký rồi đọc ghi dữ liệu JSON
+có nhiệm vụ kết nối giữa folder models và views, xử lý các dữ liệu được lấy từ models, lấy API
 
 ## views
 
-Đơn giản là gọi giao diện từ tkinder ra thoi
+Hiển thị giao diện người dùng
 
-## utils
-
-Chứa các tiện ích hỗ trợ, các hàm thường dùng để xử lý việc gì đó mà hay xài,...
-
-# Các models cần định nghĩa (dự kiến)
+# Các models cần định nghĩa
 
 - User
-- Admin
-- Order
 - Game
+- WishList
+- Lib
 
-# Cách xài github
+# Documentation
+- [CustomTkinter](https://customtkinter.tomschimansky.com/documentation/)
 
-## Tạo tài khoản trước đi
+# Hướng dẫn chạy 
+<p align="center">
+    <img src="./imgs/chayfile.png" />
+</p>
 
-Tạo tài khoản xong thì nhắn toi tên để toi thêm vào repo
-
-## Clone về máy
-
-Toi thêm vào rồi thì các ông vào vscode, vào terminal bấm
-
-```bash
-git clone https://github.com/PieckFingerr/BTL_Python.git
-```
-
-rồi vào thư mục trên
-
-```bash
-cd btl
-```
-
-rồi kiểm tra xem đã vào đúng chưa
-
-```bash
-git remote -v
-```
-
-nó hiện như vậy là đúng rồi này
-
-```bash
-origin  https://github.com/PieckFingerr/BTL_Python.git (fetch)
-origin  https://github.com/PieckFingerr/BTL_Python.git (push)
-```
-
-## Code xong thì commit và push lên
-
-QUAN TRỌNG
-
-- Luôn pull code mới nhất, nghĩa là trước khi viết code thì phải pull về để tránh xung đột
-
-Đầu tiên là chuyển qua nhánh main trước
-
-```bash
-git checkout main
-```
-
-rồi pull code về
-
-```bash
-git pull origin main --allow-unrelated-histories # Nhớ phải pull code trước
-```
-
-code xong rồi thì push lên
-
-```bash
-git add .
-git commit -m"Viết chú thích đã làm gì vào đây"
-git push origin main
-```
-
-# Chạy code
+- B1: Tạo 1 folder để lưu
+- B2: Vào folder đó và clone về
+- B3: Đổi tên folder mới clone về là btl
+- B4: Cuối cùng là vào terminal chạy lệnh
 
 ```bash
 python -m btl.main
 ```
-Lưu ý: Đường dẫn phải nằm ngoài thư mục gốc
-
+> Lưu ý: đừng vào thư mục btl nếu không sẽ không chạy được

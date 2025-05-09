@@ -1,7 +1,5 @@
 import customtkinter as ctk
-import json
-import os
-from PIL import Image, ImageTk
+from PIL import Image
 from tkinter import messagebox
 import requests
 from io import BytesIO
