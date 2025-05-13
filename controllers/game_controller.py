@@ -48,3 +48,18 @@ class GameController:
     
     def get_games_by_developer(self, developer):
         return [game for game in self.games if developer in game.devs]
+    
+    def delete_game(self, game_id):
+        for game in self.games:
+            if game.game_id == game_id:
+                self.games.remove(game)
+                self.save_games()
+                return True
+        return False
+    
+    def add_game(self, game):
+        # Kiểm tra xem game đã tồn tại trong danh sách hay chưa
+        for existing_game in self.games:
+            if existing_game.game_id == game.game_id:
+                return False  # Game đã tồn tại
+        self.games.append(game)

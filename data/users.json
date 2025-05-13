@@ -28,5 +28,12 @@
         "username": "z",
         "password": "z",
         "email": "123"
+    },
+    {
+        "user_id": 6,
+        "username": "G",
+        "password": "G",
+        "email": "G",
+        "is_admin": true
     }
 ]
