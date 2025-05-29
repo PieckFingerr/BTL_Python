@@ -17,11 +17,6 @@ class GameController:
                     game = Game(
                         game_id = game_data.get("game_id"),
                         game_name = game_data.get("game_name"),
-                        description = game_data.get("description"),
-                        release_date = game_data.get("release_date"),
-                        rating = game_data.get("rating", 0.0),
-                        genre = game_data.get("genre", []),
-                        devs = game_data.get("devs", []),
                         image = game_data.get("image", "")
                     )
                     self.games.append(game)
@@ -49,17 +44,39 @@ class GameController:
     def get_games_by_developer(self, developer):
         return [game for game in self.games if developer in game.devs]
     
-    def delete_game(self, game_id):
-        for game in self.games:
-            if game.game_id == game_id:
-                self.games.remove(game)
-                self.save_games()
-                return True
-        return False
-    
-    def add_game(self, game):
-        # Kiểm tra xem game đã tồn tại trong danh sách hay chưa
-        for existing_game in self.games:
-            if existing_game.game_id == game.game_id:
-                return False  # Game đã tồn tại
-        self.games.append(game)
+    def add_game(self, new_game):
+        # Đọc dữ liệu gốc từ file nếu cần
+        try:
+            with open(self.json_path, "r", encoding="utf-8") as file:
+                games_data = json.load(file)
+        except (FileNotFoundError, json.JSONDecodeError):
+            games_data = []
+
+        # Kiểm tra trùng lặp game_id
+        for game_data in games_data:
+            if game_data.get("game_id") == new_game.game_id:
+                print("Game ID already exists!")
+                return False
+
+        # Tạo dict từ Game object mới
+        new_game_dict = {
+            "game_id": new_game.game_id,
+            "game_name": new_game.game_name,
+            "image": new_game.image
+        }
+
+        # Thêm game mới vào danh sách
+        games_data.append(new_game_dict)
+
+        # Ghi dữ liệu vào file JSON
+        with open(self.json_path, "w", encoding="utf-8") as file:
+            json.dump(games_data, file, indent=4, ensure_ascii=False)
+
+        # Cập nhật self.games
+        self.games.append(new_game)
+        print("Game added successfully!")
+        return True
+
+
+
+            

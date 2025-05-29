@@ -1,8 +1,10 @@
 import customtkinter as ctk
-from PIL import Image
-from tkinter import messagebox
+from PIL import Image, ImageTk
+from tkinter import messagebox, filedialog
 import requests
 from io import BytesIO
+from btl.models.Game import Game
+
 
 from btl.controllers.game_controller import GameController
 from btl.controllers.lib_controller import LibController
@@ -121,6 +123,16 @@ class MainApp(ctk.CTk):
 
         # Tùy chọn hiển thị (Grid/List view)
         self.create_display_options()
+
+        # Thêm game nếu là Admin
+        if self.current_user and self.current_user.get("is_admin") == True:
+            self.add_game_btn = ctk.CTkButton(
+                self.header_frame, text="+", width=40, height=40,
+                font=ctk.CTkFont(size=24, weight="bold"),
+                command=self.open_add_game_window
+            )
+            self.add_game_btn.grid(row=0, column=1, padx=(10, 0), sticky="e")
+        
     
     def create_search_bar(self):
         """Tạo thanh tìm kiếm"""
@@ -571,3 +583,78 @@ class MainApp(ctk.CTk):
         self.profile_button.configure(fg_color=default_color)
         self.wishlist_button.configure(fg_color=default_color)
         self.library_button.configure(fg_color=default_color)
+
+    def open_add_game_window(self):
+        self.add_window = ctk.CTkToplevel(self)
+        self.add_window.title("Add Game")
+        self.add_window.geometry("350x320")
+        self.add_window.grab_set()
+
+        # Image selection
+        self.new_game_img_path = None
+        self.tk_img_preview = None
+        self.img_label = ctk.CTkLabel(self.add_window, text="No image selected")
+        self.img_label.pack(pady=10)
+        self.img_btn = ctk.CTkButton(self.add_window, text="Choose Image", command=self.choose_game_image)
+        self.img_btn.pack()
+
+        # Game name entry
+        self.name_entry = ctk.CTkEntry(self.add_window, placeholder_text="Game Name")
+        self.name_entry.pack(pady=10)
+
+        # Game id entry
+        self.id_entry = ctk.CTkEntry(self.add_window, placeholder_text="Game ID")
+        self.id_entry.pack(pady=10)
+
+        # Add/Cancel buttons
+        btn_frame = ctk.CTkFrame(self.add_window)
+        btn_frame.pack(pady=20)
+        add_btn = ctk.CTkButton(btn_frame, text="Add", command=self.add_game_confirm)
+        add_btn.grid(row=0, column=0, padx=10)
+        cancel_btn = ctk.CTkButton(btn_frame, text="Cancel", command=self.add_window.destroy)
+        cancel_btn.grid(row=0, column=1, padx=10)
+
+    def choose_game_image(self):
+        file_path = filedialog.askopenfilename(filetypes=[("Image Files", "*.png;*.jpg;*.jpeg")])
+        if file_path:
+            self.new_game_img_path = file_path
+            img = Image.open(file_path).resize((80, 80))
+            self.tk_img_preview = ImageTk.PhotoImage(img)
+            self.img_label.configure(image=self.tk_img_preview, text="")
+
+    def add_game_confirm(self):
+        name = self.name_entry.get()
+        game_id_str = self.id_entry.get()
+        img_path = self.new_game_img_path
+
+        # Kiểm tra dữ liệu nhập
+        if not name or not game_id_str:
+            messagebox.showerror("Error", "Please provide both game ID and name.")
+            return
+
+        try:
+            game_id = int(game_id_str)
+        except ValueError:
+            messagebox.showerror("Error", "Game ID must be a number.")
+            return
+
+        if not img_path:
+            messagebox.showerror("Error", "Please provide an image.")
+            return
+
+        # Tạo đối tượng Game mới
+        new_game = Game(
+            game_id=game_id,
+            game_name=name,
+            image=img_path
+        )
+
+        # Sử dụng controller để thêm game
+        success = self.games_controller.add_game(new_game)
+        if success:
+            messagebox.showinfo("Success", "Game added successfully!")
+            self.add_window.destroy()
+            self.display_games()  # Cập nhật giao diện
+        else:
+            messagebox.showerror("Error", "Game ID already exists!")
+

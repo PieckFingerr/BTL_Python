@@ -17,7 +17,7 @@ class RawgController:
             print(f"Lỗi khi lấy thông tin chi tiết game {game_id}: {e}")
             return {}
 
-    def get_games(self, page=1, page_size=10):
+    def get_games(self, page=1, page_size=40):
         url = f"{self.base_url}/games?key={self.api_key}&page={page}&page_size={page_size}"
 
         try:
@@ -43,11 +43,6 @@ class RawgController:
                 games.append({
                     "game_id": game_id,
                     "game_name": game.get("name", ""),
-                    "description": game_details.get("description", ""),
-                    "release_date": game.get("released"),
-                    "rating": game.get("rating", 0.0),
-                    "genre": genres,  # Chỉ lấy tên thể loại
-                    "devs": developers,  # Danh sách tên các nhà phát triển
                     "image": game.get("background_image", ""),
                 })
                 
