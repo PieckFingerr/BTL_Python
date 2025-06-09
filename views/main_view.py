@@ -253,6 +253,15 @@ class MainApp(ctk.CTk):
                 )
                 remove_button.grid(row=row, column=0, padx=5, pady=(0, 5), sticky="w")
             else:
+                # Remove game if current user is admin
+                if self.current_user and self.current_user.get("is_admin") == True:
+                    remove_button = ctk.CTkButton(
+                        game_frame, text="Remove Game", 
+                        command=lambda g_id=game.game_id: self.remove_game(g_id)
+                    )
+                    remove_button.grid(row=row, column=0, padx=5, pady=(0, 5), sticky="w")
+                    row += 1
+
                 # Add to library button for main view
                 library_button = ctk.CTkButton(
                     game_frame, text="Add to library", 
@@ -534,6 +543,20 @@ class MainApp(ctk.CTk):
                 messagebox.showerror("Error", "Failed to remove game from your wishlist")
         except Exception as e:
             print(f"Error removing game from wishlist: {e}")
+            messagebox.showerror("Error", f"An error occurred: {str(e)}")
+
+    def remove_game(self, game_id):
+        """Xóa game khỏi hệ thống"""
+        try:
+            success = self.games_controller.delete_game(game_id)
+            if success:
+                messagebox.showinfo("Success", "Game removed successfully")
+                # Refresh the home page
+                self.show_home_page()
+            else:
+                messagebox.showerror("Error", "Failed to remove game")
+        except Exception as e:
+            print(f"Error removing game: {e}")
             messagebox.showerror("Error", f"An error occurred: {str(e)}")
        
     def show_profile_page(self):

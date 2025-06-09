@@ -76,6 +76,25 @@ class GameController:
         self.games.append(new_game)
         print("Game added successfully!")
         return True
+    
+    # Xóa game theo game_id
+    def delete_game(self, game_id):
+        # Tìm game cần xóa
+        game_to_delete = self.get_game_by_id(game_id)
+        if not game_to_delete:
+            print("Game not found!")
+            return False
+        
+        # Xóa game khỏi danh sách self.games
+        self.games.remove(game_to_delete)
+
+        # Cập nhật file JSON
+        games_data = [game.to_dict() for game in self.games]
+        with open(self.json_path, "w", encoding="utf-8") as file:
+            json.dump(games_data, file, indent=4, ensure_ascii=False)
+
+        print("Game deleted successfully!")
+        return True
 
 
 
